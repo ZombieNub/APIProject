@@ -11,21 +11,21 @@ Option forces the programmer (myself) to handle nonexistence properly
 I only see Option being necessary in this project for the API calls, as they may not return the desired values
  */
 public interface Option<T> {
-    // Option is a interface for two classes: Some and None
+    // Option is an interface for two classes: Some and None
     // Some-like classes have a value, None-like classes don't
     // The default implementation of Some-like classes is Some
     // and the default implementation of None-like classes is None
 
     // Return true if the option is Some-like, false otherwise
-    public boolean isSome();
+    boolean isSome();
 
     // Return true if the option is None-like, false otherwise
-    public boolean isNone();
+    boolean isNone();
 
     // Return the value of the option if it is Some-like
     // Throw an exception if the option is None-like
-    public T get() throws InvalidGetOnOptionException;
+    T get() throws InvalidGetOnOptionException;
 
     // Maps the function f over a Some-like. If the option is None-like, then it returns a None<U>
-    public <U> Option<U> map(Function<T, U> f);
+    <U> Option<U> map(Function<T, U> f);
 }

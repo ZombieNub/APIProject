@@ -1,7 +1,7 @@
 package org.example.error;
 
 /*
-The purpose of option is to describe exceptions in a programatic way without using throw or catch.
+The purpose of option is to describe exceptions in a programmatic way without using throw or catch.
 This is useful if we want to match against the possibility of an error inline, rather than after the fact.
  */
 public interface Result<T> {
@@ -11,16 +11,16 @@ public interface Result<T> {
     // and the default implementation of Err-like classes is Err
 
     // Return true if the result is Ok-like, false otherwise
-    public boolean isOk();
+    boolean isOk();
 
     // Return true if the result is Err-like, false otherwise
-    public boolean isErr();
+    boolean isErr();
 
     // Return the value of the result if it is Ok-like
     // Throw an exception if the result is Err-like
-    public T unwrap() throws UnwrapOnErrException;
+    T unwrap() throws UnwrapOnErrException;
 
     // Return the exception of the result if it is Err-like
     // Throw an exception if the result is Ok-like
-    public Exception unwrapErr() throws UnwrapErrOnOkException;
+    Exception unwrapErr() throws UnwrapErrOnOkException;
 }

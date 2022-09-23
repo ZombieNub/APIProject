@@ -7,7 +7,7 @@ public class Some<T> implements Option<T> {
     // New Some-like classes can be created by extending Some, or by creating a new class that implements Option
 
     // The value of the option
-    private T value;
+    private final T value;
 
     public Some(T value) {
         this.value = value;
@@ -21,7 +21,7 @@ public class Some<T> implements Option<T> {
         return false;
     }
 
-    public T get() throws InvalidGetOnOptionException {
+    public T get() {
         return value;
     }
 
