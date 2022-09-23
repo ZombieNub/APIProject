@@ -18,7 +18,7 @@ public class Ok<T> implements Result<T> {
     }
 
     @Override
-    public T unwrap() throws UnwrapOnErrException {
+    public T unwrap() {
         return value;
     }
 
