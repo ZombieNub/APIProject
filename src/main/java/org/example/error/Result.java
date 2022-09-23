@@ -19,4 +19,8 @@ public interface Result<T> {
     // Return the value of the result if it is Ok-like
     // Throw an exception if the result is Err-like
     public T unwrap() throws UnwrapOnErrException;
+
+    // Return the exception of the result if it is Err-like
+    // Throw an exception if the result is Ok-like
+    public Exception unwrapErr() throws UnwrapErrOnOkException;
 }
