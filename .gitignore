@@ -40,3 +40,7 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# There exists a file we want to ignore as it stores the api key. Ignoring it will allow us to push to github without exposing the api key.
+# The file is called "properties.json" and is located in the "src/main/resources" folder.
+**/src/main/resources/properties.json
