@@ -1,10 +1,15 @@
 package org.example;
 
+import com.google.gson.JsonObject;
 import org.example.error.Err;
 import org.example.error.Ok;
 import org.example.error.Result;
 import org.example.error.Util;
+import org.example.weather.WeatherRequestBuilder;
 
+import java.io.Reader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 
@@ -44,17 +49,149 @@ public class Main {
 
     public static void main(String[] args) {
         Scanner in = new Scanner(System.in);
+        // It's not necessary to make zipCode and cityNames Result objects, but it's a good idea to do so anyway.
+        // This is because they could possibly fail to be created, and if they do, we want to handle that error.
+        // So by default, they are Err objects. If they are successfully created, we can change them to Ok objects.
+        // It's impossible for them to be anything but Err objects, but who knows what may happen.
+        Result<Integer> zipCode = new Err<>(new Exception("zipCode failed to initialize"));
+        Result<String> cityName = new Err<>(new Exception("cityName failed to initialize"));
         int choice = Util.LoopUntilOk(() -> GetZipCityChoice(in), "Invalid input. Expected 1 or 2.");
         switch (choice) {
-            case 1 -> {
-                int zipCode = Util.LoopUntilOk(() -> GetZipCode(in), "Invalid input. Expected a zip code.");
-                System.out.println("You entered zip code " + zipCode);
-            }
-            case 2 -> {
-                String cityName = GetCityName(in);
-                System.out.println("You entered city name " + cityName);
-            }
+            case 1 -> zipCode = new Ok<>(Util.LoopUntilOk(() -> GetZipCode(in), "Invalid input. Expected a zip code."));
+            case 2 -> cityName = new Ok<>(GetCityName(in));
             default -> throw new RuntimeException("This should never happen. Please report this bug.");
+        }
+
+        // Now that we have the zip code or city name, we can use it to get the weather.
+        // First we need to construct the API call.
+        Result<URL> urlResult;
+        if (choice == 1) {
+            urlResult = zipCode.flatMap(WeatherRequestBuilder::getUrlFromZipCode);
+        } else {
+            urlResult = cityName.flatMap(WeatherRequestBuilder::getUrlFromCityName);
+        }
+        // Thinking about it, the choice is actually an Option type, and I can use bimap along with flatmap to make this code more concise.
+        // I'll do that later.
+        // Now we can use the URL to get the weather.
+        Result<HttpURLConnection> connection = urlResult.flatMap(
+                url -> Util.Try(
+                        () -> (HttpURLConnection) url.openConnection()
+                )
+        );
+
+        Result<Integer> status = connection.flatMap(
+                conn -> Util.Try(
+                        () -> {
+                                conn.setRequestMethod("GET");
+                                conn.setConnectTimeout(5000);
+                                conn.setReadTimeout(5000);
+                                return conn.getResponseCode();
+                        }
+                )
+        );
+
+        // Finally, we can get the weather's JSON.
+        Result<Reader> inStream;
+        inStream = status.flatMap(
+                stat -> {
+                    if (stat < 300) {
+                        return connection.flatMap(
+                                conn -> Util.Try(
+                                        () -> new java.io.InputStreamReader(conn.getInputStream())
+                                )
+                        );
+                    } else {
+                        return connection.flatMap(
+                                conn -> Util.Try(
+                                        () -> new java.io.InputStreamReader(conn.getErrorStream())
+                                )
+                        );
+                    }
+                }
+        );
+
+        // Now that we have the JSON, we can parse it.
+        Result<JsonObject> json = inStream.flatMap(
+                inStr -> Util.Try(
+                        () -> com.google.gson.JsonParser.parseReader(inStr).getAsJsonObject()
+                )
+        );
+
+        // Now we can display the results to the user.
+        // We have two options: Either print the JSON data directly, or compile it into a string and print that.
+        // We will do the latter, especially since we can have the last function finally handle the error, if one occurs.
+
+        Result<String> printStr = json.flatMap(
+                rJson -> {
+                    // We need to figure out what to do based on the status code.
+                    // If the status code is >= 300, then we need to print the error stream.
+                    // Otherwise, we need to print elements from the JSON in a pretty format.
+
+                    // Since status is currently wrapped in a Result, we need to flatMap it.
+                    return status.flatMap(
+                            statusCode -> {
+                                if (statusCode >= 300) {
+                                    // This indicates that an error occurred in the request.
+                                    // So we need to return the error message
+                                    return Util.Try(
+                                            () -> rJson.get("message").getAsString()
+                                    );
+                                } else {
+                                    // This indicates that the request was successful, so we need to return the weather data.
+                                    // Pretty formatting is best, so lets try being pretty.
+                                    // We will print the:
+                                    /*
+                                        - City name
+                                        - Temperature (Max, Min, Current)
+                                        - Feel like temperature
+                                        - Humidity
+                                        - Wind speed
+                                        - Wind direction
+                                        - Weather description
+                                     */
+                                    return Util.Try(
+                                            () -> {
+                                                String jCityName = rJson.get("name").getAsString();
+                                                JsonObject main = rJson.get("main").getAsJsonObject();
+                                                double temp = main.get("temp").getAsDouble();
+                                                double tempMin = main.get("temp_min").getAsDouble();
+                                                double tempMax = main.get("temp_max").getAsDouble();
+                                                double feelsLike = main.get("feels_like").getAsDouble();
+                                                double humidity = main.get("humidity").getAsDouble();
+                                                JsonObject wind = rJson.get("wind").getAsJsonObject();
+                                                double windSpeed = wind.get("speed").getAsDouble();
+                                                double windDeg = wind.get("deg").getAsDouble();
+                                                String weatherDesc = rJson.get("weather").getAsJsonArray().get(0).getAsJsonObject().get("description").getAsString();
+                                                return String.format(
+                                                        "City name: %s%n" +
+                                                        "Temperature: %f%n" +
+                                                        "Temperature (Min): %f%n" +
+                                                        "Temperature (Max): %f%n" +
+                                                        "Feels like: %f%n" +
+                                                        "Humidity: %f%n" +
+                                                        "Wind speed: %f%n" +
+                                                        "Wind direction: %f%n" +
+                                                        "Weather description: %s%n",
+                                                        jCityName, temp, tempMin, tempMax, feelsLike, humidity, windSpeed, windDeg, weatherDesc
+                                                );
+                                            }
+                                    );
+                                }
+                            }
+                    );
+                }
+        );
+
+        // Now we can print the string.
+        // If there is an error, we will print the error message.
+        try {
+            System.out.println(printStr.unwrap());
+        } catch (Exception e) {
+            try {
+                System.out.println("Something went wrong: " + printStr.unwrapErr());
+            } catch (Exception ex) {
+                System.out.println("An unknown error occurred.");
+            }
         }
     }
 }
