@@ -1,0 +1,7 @@
+/*
+For security reasons, the real API key is not included in the code. You can get your own API key from openweathermap.org and replace the API_KEY variable with your own key.
+Simply copy this file, rename it to properies.json and replace the API_KEY variable with your own key.
+*/
+{
+  "apiKey": "API_KEY"
+}
