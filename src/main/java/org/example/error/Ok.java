@@ -1,5 +1,7 @@
 package org.example.error;
 
+import java.util.function.Function;
+
 public class Ok<T> implements Result<T> {
     private final T value;
 
@@ -25,5 +27,11 @@ public class Ok<T> implements Result<T> {
     @Override
     public Exception unwrapErr() throws UnwrapErrOnOkException {
         throw new UnwrapErrOnOkException();
+    }
+
+    @Override
+    public <U> Result<U> flatMap(Function<T, Result<U>> f) {
+        // Since this is an Ok, we just return the result of the function
+        return f.apply(value);
     }
 }

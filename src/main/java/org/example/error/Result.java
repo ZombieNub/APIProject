@@ -1,5 +1,7 @@
 package org.example.error;
 
+import java.util.function.Function;
+
 /*
 The purpose of option is to describe exceptions in a programmatic way without using throw or catch.
 This is useful if we want to match against the possibility of an error inline, rather than after the fact.
@@ -23,4 +25,10 @@ public interface Result<T> {
     // Return the exception of the result if it is Err-like
     // Throw an exception if the result is Ok-like
     Exception unwrapErr() throws UnwrapErrOnOkException;
+
+    // Like all monads, Result needs a flatMap function
+    // This makes composing Result objects easier
+    // Composing Ok-like objects feeds the result of the value into the given function
+    // Composing Err-like objects returns the Err-like object
+    <U> Result<U> flatMap(Function<T, Result<U>> f);
 }
