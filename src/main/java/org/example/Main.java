@@ -47,6 +47,10 @@ public class Main {
         return in.nextLine().trim();
     }
 
+    public static double ToFahrenheit(double kelvin) {
+        return ((kelvin - 273.15) * (9.0 / 5.0)) + 32;
+    }
+
     public static void main(String[] args) {
         Scanner in = new Scanner(System.in);
         // It's not necessary to make zipCode and cityNames Result objects, but it's a good idea to do so anyway.
@@ -153,10 +157,12 @@ public class Main {
                                             () -> {
                                                 String jCityName = rJson.get("name").getAsString();
                                                 JsonObject main = rJson.get("main").getAsJsonObject();
-                                                double temp = main.get("temp").getAsDouble();
-                                                double tempMin = main.get("temp_min").getAsDouble();
-                                                double tempMax = main.get("temp_max").getAsDouble();
-                                                double feelsLike = main.get("feels_like").getAsDouble();
+                                                // Each of the following are in Kelvin.
+                                                // We need to convert them to Fahrenheit.
+                                                double temp = ToFahrenheit(main.get("temp").getAsDouble());
+                                                double tempMin = ToFahrenheit(main.get("temp_min").getAsDouble());
+                                                double tempMax = ToFahrenheit(main.get("temp_max").getAsDouble());
+                                                double feelsLike = ToFahrenheit(main.get("feels_like").getAsDouble());
                                                 double humidity = main.get("humidity").getAsDouble();
                                                 JsonObject wind = rJson.get("wind").getAsJsonObject();
                                                 double windSpeed = wind.get("speed").getAsDouble();
