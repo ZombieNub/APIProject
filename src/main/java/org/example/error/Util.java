@@ -1,5 +1,6 @@
 package org.example.error;
 
+import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
 /*
@@ -26,9 +27,9 @@ public class Util {
 
     // This function converts functions that throws exceptions to functions that return Results.
     // This is useful for both function composition and use with other Util functions.
-    public static <T> Result<T> Try(ExceptionalSupplier<T> f) {
+    public static <T> Result<T> Try(Callable<T> f) {
         try {
-            return new Ok<>(f.get());
+            return new Ok<>(f.call());
         } catch (Exception e) {
             return new Err<>(e);
         }
