@@ -16,6 +16,9 @@ import java.util.InputMismatchException;
 import java.util.Scanner;
 
 public class WeatherAPI {
+    // The following functions were meant for a previous version of the program that used the console.
+    // Now that we are using commands through an IRC client, these functions are no longer used.
+    // Get the user's choice of city
     public static Result<Integer> GetZipCityChoice(Scanner in) {
         System.out.println("Would you like to search by zip code or city name?");
         System.out.println("1. Zip code");
@@ -49,23 +52,40 @@ public class WeatherAPI {
         return in.nextLine().trim();
     }
 
+    // For use with the IRC client, we need to parse the user's input to get the zip code or city name.
+    public static Either<Result<Integer>, Result<String>> parseUserParam(String rawZipCodeOrCityName) {
+        String zipCodeOrCityName = rawZipCodeOrCityName.trim();
+        try {
+            int zipCode = Integer.parseInt(zipCodeOrCityName);
+            return new Left<>(new Ok<>(zipCode));
+        } catch (NumberFormatException e) {
+            return new Right<>(new Ok<>(zipCodeOrCityName));
+        }
+    }
+
     public static double ToFahrenheit(double kelvin) {
         return ((kelvin - 273.15) * (9.0 / 5.0)) + 32;
     }
 
-    public static void main() {
-        Scanner in = new Scanner(System.in);
+    public static String getWeather(String rawZipCodeOrCityName) {
+        // Much of the commented out code below was used for the console version of the program.
+        // Now that we are using an IRC client, we don't need to use the console.
+
+        // Scanner in = new Scanner(System.in);
         // It's not necessary to make zipCode and cityNames Result objects, but it's a good idea to do so anyway.
         // This is because they could possibly fail to be created, and if they do, we want to handle that error.
         // So by default, they are Err objects. If they are successfully created, we can change them to Ok objects.
         // It's impossible for them to be anything but Err objects, but who knows what may happen.
-        Either<Result<Integer>, Result<String>> zipCodeOrCityName;
+        Either<Result<Integer>, Result<String>> zipCodeOrCityName = parseUserParam(rawZipCodeOrCityName);
+        /*
         int choice = Util.LoopUntilOk(() -> GetZipCityChoice(in), "Invalid input. Expected 1 or 2.");
         switch (choice) {
             case 1 -> zipCodeOrCityName = new Left<>(new Ok<>(Util.LoopUntilOk(() -> GetZipCode(in), "Invalid input. Expected a zip code.")));
             case 2 -> zipCodeOrCityName = new Right<>(new Ok<>(GetCityName(in)));
             default -> throw new RuntimeException("This should never happen. Please report this bug.");
         }
+
+         */
 
         // Now that we have the zip code or city name, we can use it to get the weather.
         // First we need to construct the API call.
@@ -189,12 +209,12 @@ public class WeatherAPI {
         // Now we can print the string.
         // If there is an error, we will print the error message.
         try {
-            System.out.println(printStr.unwrap());
+            return printStr.unwrap();
         } catch (Exception e) {
             try {
-                System.out.println("Something went wrong: " + printStr.unwrapErr());
+                return "Something went wrong: " + printStr.unwrapErr();
             } catch (Exception ex) {
-                System.out.println("Something went wrong: " + ex.getMessage());
+                return "Something went wrong: " + ex.getMessage();
             }
         }
     }
