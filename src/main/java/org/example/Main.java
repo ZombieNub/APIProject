@@ -1,6 +1,9 @@
 package org.example;
 
 import com.google.gson.JsonObject;
+import org.example.either.Either;
+import org.example.either.Left;
+import org.example.either.Right;
 import org.example.error.Err;
 import org.example.error.Ok;
 import org.example.error.Result;
@@ -57,25 +60,21 @@ public class Main {
         // This is because they could possibly fail to be created, and if they do, we want to handle that error.
         // So by default, they are Err objects. If they are successfully created, we can change them to Ok objects.
         // It's impossible for them to be anything but Err objects, but who knows what may happen.
-        Result<Integer> zipCode = new Err<>(new Exception("zipCode failed to initialize"));
-        Result<String> cityName = new Err<>(new Exception("cityName failed to initialize"));
+        Either<Result<Integer>, Result<String>> zipCodeOrCityName;
         int choice = Util.LoopUntilOk(() -> GetZipCityChoice(in), "Invalid input. Expected 1 or 2.");
         switch (choice) {
-            case 1 -> zipCode = new Ok<>(Util.LoopUntilOk(() -> GetZipCode(in), "Invalid input. Expected a zip code."));
-            case 2 -> cityName = new Ok<>(GetCityName(in));
+            case 1 -> zipCodeOrCityName = new Left<>(new Ok<>(Util.LoopUntilOk(() -> GetZipCode(in), "Invalid input. Expected a zip code.")));
+            case 2 -> zipCodeOrCityName = new Right<>(new Ok<>(GetCityName(in)));
             default -> throw new RuntimeException("This should never happen. Please report this bug.");
         }
 
         // Now that we have the zip code or city name, we can use it to get the weather.
         // First we need to construct the API call.
-        Result<URL> urlResult;
-        if (choice == 1) {
-            urlResult = zipCode.flatMap(WeatherRequestBuilder::getUrlFromZipCode);
-        } else {
-            urlResult = cityName.flatMap(WeatherRequestBuilder::getUrlFromCityName);
-        }
-        // Thinking about it, the choice is actually an Option type, and I can use bimap along with flatmap to make this code more concise.
-        // I'll do that later.
+        Result<URL> urlResult = zipCodeOrCityName.flatten(
+                (Result<Integer> zipCode) -> zipCode.flatMap(WeatherRequestBuilder::getUrlFromZipCode),
+                (Result<String> cityName) -> cityName.flatMap(WeatherRequestBuilder::getUrlFromCityName)
+        );
+
         // Now we can use the URL to get the weather.
         Result<HttpURLConnection> connection = urlResult.flatMap(
                 url -> Util.Try(
@@ -196,7 +195,7 @@ public class Main {
             try {
                 System.out.println("Something went wrong: " + printStr.unwrapErr());
             } catch (Exception ex) {
-                System.out.println("An unknown error occurred.");
+                System.out.println("Something went wrong: " + ex.getMessage());
             }
         }
     }
